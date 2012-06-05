@@ -55,7 +55,8 @@ public class FlowDSL {
                 UNSTABLE: Result.UNSTABLE,
                 FAILURE: Result.FAILURE,
                 ABORTED: Result.ABORTED,
-                NOT_BUILT: Result.NOT_BUILT
+                NOT_BUILT: Result.NOT_BUILT //,
+                // ENV: flowRun.getBuildVariables()
         ])
 
         Script dslScript = new GroovyShell(binding).parse("flow { " + dsl + "}")

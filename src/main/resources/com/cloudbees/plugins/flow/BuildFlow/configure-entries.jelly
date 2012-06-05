@@ -15,24 +15,23 @@
  along with this program; if not, see <http://www.gnu.org/licenses/>.
 -->
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:p="/lib/hudson/project" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form" xmlns:i="jelly:fmt">
-  <f:entry field="dsl" title="${%Define build flow using flow DSL}">
-    <f:textarea/>
-  </f:entry>
-
-  <p:config-disableBuild/>
-  
-  <p:config-trigger/>
+<j:jelly xmlns:j="jelly:core" 
+         xmlns:st="jelly:stapler" 
+         xmlns:d="jelly:define" 
+         xmlns:l="/lib/layout" 
+         xmlns:t="/lib/hudson" 
+         xmlns:p="/lib/hudson/project" 
+         xmlns:f="/lib/form" 
+         xmlns:i="jelly:fmt">
     
-  <f:section title="${%Advanced Project Options configure-common}">
-    <f:advanced>
-      <p:config-quietPeriod />
-      <p:config-retryCount />
-      <p:config-blockWhenUpstreamBuilding />
-      <p:config-blockWhenDownstreamBuilding />
-      <st:include page="configure-advanced.jelly" optional="true" />
-    </f:advanced>
+  <st:include page="configure-common.jelly" />
+
+  <f:section title="${%Build Flow}">
+    <f:entry field="dsl" title="${%Definition}">
+      <f:textarea/>
+    </f:entry>
   </f:section>
-    
 
+  <p:config-trigger />
+  <p:config-publishers2 />
 </j:jelly>

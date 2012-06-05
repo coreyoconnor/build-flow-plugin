@@ -106,4 +106,20 @@ class BuildTest extends DSLTestCase {
         assertHasParameter(build, "param2", "job1")
         assert SUCCESS == flow.result
     }
+
+    public void testParametersFromBuild() {
+        Job job1 = createJob("job1")
+        Job job2 = createJob("job2")
+        def flow = run("""
+            b = build("job1")
+            build("job2",
+                  param1: b.result.name,
+                  param2: b.name)
+        """)
+        assertSuccess(job1)
+        def build = assertSuccess(job2)
+        assertHasParameter(build, "param1", "SUCCESS")
+        assertHasParameter(build, "param2", "job1")
+        assert SUCCESS == flow.result
+    }
 }

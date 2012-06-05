@@ -24,8 +24,13 @@ import hudson.model.Queue.FlyweightTask;
 import hudson.tasks.Publisher;
 import hudson.util.AlternativeUiTextProvider;
 import hudson.util.DescribableList;
+
 import java.io.IOException;
+import java.util.Map;
 import javax.servlet.ServletException;
+
+import net.sf.json.JSONObject;
+
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 
@@ -34,11 +39,14 @@ import org.kohsuke.stapler.StaplerResponse;
  *
  * @author <a href="mailto:nicolas.deloof@cloudbees.com">Nicolas De loof</a>
  */
-public class BuildFlow extends AbstractProject<BuildFlow, FlowRun> implements TopLevelItem, FlyweightTask, SCMedItem {
+public class BuildFlow extends AbstractProject<BuildFlow, FlowRun> implements TopLevelItem, FlyweightTask, Saveable, SCMedItem {
 
     private final FlowIcon icon = new FlowIcon();
 
     private String dsl;
+
+    private DescribableList<Publisher, Descriptor<Publisher>> publishers = 
+        new DescribableList<Publisher, Descriptor<Publisher>>(this);
 
     public BuildFlow(ItemGroup parent, String name) {
         super(parent, name);
@@ -52,10 +60,37 @@ public class BuildFlow extends AbstractProject<BuildFlow, FlowRun> implements To
         this.dsl = dsl;
     }
 
+    public Map<Descriptor<Publisher>,Publisher> getPublishers() {
+        return publishers.toMap();
+    }
+
+    public DescribableList<Publisher, Descriptor<Publisher>> getPublishersList() {
+        return publishers;
+    }
+
+    public Publisher getPublisher(Descriptor<Publisher> descriptor){
+        for(Publisher p : publishers) {
+            if(p.getDescriptor() == descriptor)
+                return p;
+        }
+        return null;
+    }
+
+    @Override 
+    public void onLoad(ItemGroup<? extends Item> parent, String name) throws IOException {
+        super.onLoad(parent, name);
+
+        publishers.setOwner(this);
+    }
+
     @Override
     protected void submit(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException, FormException {
         super.submit(req, rsp);
-        this.dsl = req.getSubmittedForm().getString("dsl");
+
+        JSONObject json = req.getSubmittedForm();
+
+        this.dsl = json.getString("dsl");
+        publishers.rebuildHetero(req, json, Publisher.all(), "publisher");
     }
 
     @Extension
@@ -74,7 +109,7 @@ public class BuildFlow extends AbstractProject<BuildFlow, FlowRun> implements To
     }
 
 
-    public static class BuildFlowDescriptor extends TopLevelItemDescriptor {
+    public static class BuildFlowDescriptor extends AbstractProjectDescriptor {
         @Override
         public String getDisplayName() {
             return Messages.BuildFlow_Messages();
@@ -84,11 +119,6 @@ public class BuildFlow extends AbstractProject<BuildFlow, FlowRun> implements To
         public TopLevelItem newInstance(ItemGroup parent, String name) {
             return new BuildFlow(parent, name);
         }
-    }
-
-    @Override
-    public DescribableList<Publisher, Descriptor<Publisher>> getPublishersList() {
-        return new DescribableList<Publisher,Descriptor<Publisher>>(this);
     }
 
     @Override
@@ -104,12 +134,10 @@ public class BuildFlow extends AbstractProject<BuildFlow, FlowRun> implements To
 
     @Override
     protected void buildDependencyGraph(DependencyGraph graph) {
-        // TODO Auto-generated method stub
-        
+      publishers.buildDependencyGraph(this, graph);
     }
 
-	public AbstractProject<?, ?> asProject() {
-		return (AbstractProject) this;
-	} 
-    
+    public AbstractProject<?, ?> asProject() {
+      return (AbstractProject) this;
+    } 
 }
