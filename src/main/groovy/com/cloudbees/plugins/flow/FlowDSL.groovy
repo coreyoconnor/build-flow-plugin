@@ -25,6 +25,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Callable
 import java.util.concurrent.TimeUnit
+import hudson.EnvVars
 
 public class FlowDSL {
 
@@ -35,7 +36,7 @@ public class FlowDSL {
         return emc
     }
 
-    def void executeFlowScript(FlowRun flowRun, String dsl, BuildListener listener) {
+    def void executeFlowScript(FlowRun flowRun, String dsl, EnvVars env, BuildListener listener) {
         // TODO : add restrictions for System.exit, etc ...
         FlowDelegate flow = new FlowDelegate(flowRun, listener)
 
@@ -55,8 +56,8 @@ public class FlowDSL {
                 UNSTABLE: Result.UNSTABLE,
                 FAILURE: Result.FAILURE,
                 ABORTED: Result.ABORTED,
-                NOT_BUILT: Result.NOT_BUILT //,
-                // ENV: flowRun.getBuildVariables()
+                NOT_BUILT: Result.NOT_BUILT,
+                ENV: env
         ])
 
         Script dslScript = new GroovyShell(binding).parse("flow { " + dsl + "}")
@@ -207,5 +208,9 @@ public class FlowDelegate {
 
     def methodMissing(String name, Object args) {
         throw new MissingMethodException("Method ${name} doesn't exist.");
+    }
+
+    def println(String outText) {
+        listener.logger.println(outText);
     }
 }
