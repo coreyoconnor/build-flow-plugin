@@ -32,6 +32,8 @@
     </f:entry>
   </f:section>
 
-  <p:config-trigger />
-  <p:config-publishers2 />
+  <p:config-trigger>
+      <p:config-upstream-pseudo-trigger />
+  </p:config-trigger>
+  <p:config-publishers />
 </j:jelly>

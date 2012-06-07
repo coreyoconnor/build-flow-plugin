@@ -21,12 +21,19 @@ import hudson.Extension;
 import hudson.model.*;
 import hudson.model.Descriptor.FormException;
 import hudson.model.Queue.FlyweightTask;
+import hudson.tasks.BuildStep;
+import hudson.tasks.BuildStepDescriptor;
+import hudson.tasks.Fingerprinter;
 import hudson.tasks.Publisher;
+import hudson.Util;
 import hudson.util.AlternativeUiTextProvider;
 import hudson.util.DescribableList;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
 import javax.servlet.ServletException;
 
 import net.sf.json.JSONObject;
@@ -60,20 +67,9 @@ public class BuildFlow extends AbstractProject<BuildFlow, FlowRun> implements To
         this.dsl = dsl;
     }
 
-    public Map<Descriptor<Publisher>,Publisher> getPublishers() {
-        return publishers.toMap();
-    }
-
+    @Override
     public DescribableList<Publisher, Descriptor<Publisher>> getPublishersList() {
         return publishers;
-    }
-
-    public Publisher getPublisher(Descriptor<Publisher> descriptor){
-        for(Publisher p : publishers) {
-            if(p.getDescriptor() == descriptor)
-                return p;
-        }
-        return null;
     }
 
     @Override 
@@ -90,7 +86,7 @@ public class BuildFlow extends AbstractProject<BuildFlow, FlowRun> implements To
         JSONObject json = req.getSubmittedForm();
 
         this.dsl = json.getString("dsl");
-        publishers.rebuildHetero(req, json, Publisher.all(), "publisher");
+        publishers.rebuild(req, json, BuildStepDescriptor.filter(Publisher.all(), this.getClass()));
     }
 
     @Extension
@@ -128,16 +124,34 @@ public class BuildFlow extends AbstractProject<BuildFlow, FlowRun> implements To
 
     @Override
     public boolean isFingerprintConfigured() {
-        // TODO Auto-generated method stub
-        return false;
+        return getPublishersList().get(Fingerprinter.class)!=null;
     }
 
     @Override
     protected void buildDependencyGraph(DependencyGraph graph) {
-      publishers.buildDependencyGraph(this, graph);
+        /* XXX: Examine the build flow to determine all possible downstream projects. */
+        publishers.buildDependencyGraph(this, graph);
+    }
+
+    @Override
+    protected Set<ResourceActivity> getResourceActivities() {
+        final Set<ResourceActivity> activities = new HashSet<ResourceActivity>();
+
+        activities.addAll(super.getResourceActivities());
+        activities.addAll(Util.filter(publishers,ResourceActivity.class));
+        return activities;
+    }
+
+    protected List<Action> createTransientActions() {
+        List<Action> r = super.createTransientActions();
+
+        for(BuildStep p : getPublishersList())
+            r.addAll(p.getProjectActions(this));
+
+        return r;
     }
 
     public AbstractProject<?, ?> asProject() {
-      return (AbstractProject) this;
+      return this;
     } 
 }

@@ -18,11 +18,17 @@
 package com.cloudbees.plugins.flow;
 
 import hudson.Plugin;
+import hudson.model.Items;
 
 /**
  * @author <a href="mailto:nicolas.deloof@cloudbees.com">Nicolas De loof</a>
  */
 public class BuildFlowPlugin extends Plugin {
 
+    @Override
+    public void start() throws Exception {
+        super.start();
 
+        Items.XSTREAM.alias("build-flow", BuildFlow.class);
+    }
 }
