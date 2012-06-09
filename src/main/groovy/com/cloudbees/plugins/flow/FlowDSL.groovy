@@ -69,6 +69,10 @@ public class FlowDSL {
                 cl.resolveStrategy = Closure.DELEGATE_FIRST
                 cl()
             }
+            emc.println = {
+                Object v ->
+                listener.logger.println(v)
+            }
         })
         try {
             dslScript.run()
@@ -108,9 +112,9 @@ public class FlowDelegate {
         }
         // ask for job with name ${name}
         JobInvocation job = new JobInvocation(flowRun, jobName)
-        listener.logger.println("Trigger job ${jobName}")
         Run r = flowRun.schedule(job, getActions(args));
-        listener.logger.println("Completed ${r}")
+        listener.hyperlink("/job/${jobName}/${r.number}", "Triggered ${r}")
+        listener.logger.println()
         return job;
     }
 
@@ -208,9 +212,5 @@ public class FlowDelegate {
 
     def methodMissing(String name, Object args) {
         throw new MissingMethodException("Method ${name} doesn't exist.");
-    }
-
-    def println(String outText) {
-        listener.logger.println(outText);
     }
 }
