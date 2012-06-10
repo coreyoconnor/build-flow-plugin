@@ -148,7 +148,7 @@ public class FlowDelegate {
         }
         // ask for job with name ${name}
         JobInvocation job = new JobInvocation(flowRun, jobName)
-        Run r = flowRun.schedule(job, getActions(args));
+        Run r = flowRun.run(job, getActions(args));
 
         if (null == r) {
             println("Failed to start ${jobName}.")
