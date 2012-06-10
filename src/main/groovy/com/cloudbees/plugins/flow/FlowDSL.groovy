@@ -28,6 +28,11 @@ import java.util.concurrent.TimeUnit
 import hudson.slaves.NodeProperty
 import hudson.slaves.EnvironmentVariablesNodeProperty
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.Future
+import java.util.concurrent.Callable
+
+import static hudson.model.Result.FAILURE
+import java.util.concurrent.ExecutionException
 
 public class FlowDSL {
 
@@ -88,8 +93,8 @@ public class FlowDSL {
         })
         try {
             dslScript.run()
-        } finally {
-            //
+        } catch(JobExecutionFailureException e) {
+            flowRun.state.result = FAILURE;
         }
     }
 
@@ -138,14 +143,20 @@ public class FlowDelegate {
     
     def build(Map args, String jobName) {
         if (flowRun.state.result.isWorseThan(SUCCESS)) {
+            println("Skipping ${jobName}")
             fail()
         }
         // ask for job with name ${name}
         JobInvocation job = new JobInvocation(flowRun, jobName)
         Run r = flowRun.schedule(job, getActions(args));
 
+        if (null == r) {
+            println("Failed to start ${jobName}.")
+            fail();
+        }
+
         println_with_indent {
-            listener.hyperlink("/job/${jobName}/${r.number}", "Triggered ${r}")
+            listener.hyperlink("/job/${jobName}/${r.number}", "Executed ${r}")
         }
         return job;
     }
@@ -228,27 +239,44 @@ public class FlowDelegate {
         ExecutorService pool = Executors.newCachedThreadPool()
         Set<Run> upstream = flowRun.state.lastCompleted
         Set<Run> lastCompleted = Collections.synchronizedSet(new HashSet<Run>())
-        def results = new CopyOnWriteArrayList();
+        def results = new CopyOnWriteArrayList<Result>()
+        def tasks = new ArrayList<Future<FlowState>>()
 
         println("parallel {")
         ++indent
 
+        def current_state = flowRun.state
         try {
-            closures.eachWithIndex { closure, idx ->
-                pool.submit( {
+
+            closures.each {closure ->
+                Closure<FlowState> track_closure = {
                     flowRun.state = new FlowState(SUCCESS, upstream)
                     closure()
                     lastCompleted.addAll(flowRun.state.lastCompleted)
-                    results[idx] = flowRun.state
-                } )
+                    return flowRun.state
+                }
+
+                tasks.add(pool.submit(track_closure as Callable))
             }
+
+            tasks.each {task ->
+                try {
+                    def final_state = task.get()
+                    Result result = final_state.result
+                    results.add(result)
+                    current_state.result = current_state.result.combine(result)
+                } catch(ExecutionException e)
+                {
+                    // TODO perhaps rethrow?
+                    current_state.result = FAILURE
+                }
+            }
+
             pool.shutdown()
             pool.awaitTermination(1, TimeUnit.DAYS)
-            flowRun.state.lastCompleted = lastCompleted
-            results.each {
-                flowRun.state.result = flowRun.state.result.combine(it.result)
-            }
+            current_state.setLastCompleted(lastCompleted)
         } finally {
+            flowRun.state = current_state
             --indent
             println("}")
         }
