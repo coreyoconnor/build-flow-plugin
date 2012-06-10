@@ -115,17 +115,17 @@ public class FlowDelegate {
         causes = flowRun.causes
     }
 
-    def out() {
+    def getOut() {
         return listener.logger
     }
 
     // TODO Assuring proper indent should be done in the listener?
     def println_with_indent(Closure f) {
         for (int i = 0; i < indent; ++i) {
-            out().print("    ")
+            out.print("    ")
         }
         f()
-        out().println()
+        out.println()
     }
 
     def println(String s) {
