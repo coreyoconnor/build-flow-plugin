@@ -148,6 +148,8 @@ public class FlowDelegate {
         }
         // ask for job with name ${name}
         JobInvocation job = new JobInvocation(flowRun, jobName)
+
+        println("Starting ${jobName}")
         Run r = flowRun.run(job, getActions(args));
 
         if (null == r) {
