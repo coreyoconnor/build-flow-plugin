@@ -82,16 +82,16 @@ public class FlowDSL {
         Script dslScript = new GroovyShell(binding).parse("flow { " + dsl + "}")
         dslScript.metaClass = createEMC(dslScript.class, {
             ExpandoMetaClass emc ->
-            emc.flow = {
-                Closure cl ->
+            emc.flow = {Closure cl ->
                 cl.delegate = flow
                 cl.resolveStrategy = Closure.DELEGATE_FIRST
                 cl()
             }
-            emc.println = {
-                String s -> flow.println s
+            emc.println = {String s ->
+                flow.println s
             }
         })
+
         try {
             dslScript.run()
         } catch(JobExecutionFailureException e) {
@@ -120,7 +120,7 @@ public class FlowDelegate {
         return listener.logger
     }
 
-    // TODO Assuring proper indent should be done in the listener?
+    // TODO Assuring proper indent should probably be done in the listener.
     def println_with_indent(Closure f) {
         for (int i = 0; i < indent; ++i) {
             out.print("    ")
@@ -262,7 +262,6 @@ public class FlowDelegate {
 
         def current_state = flowRun.state
         try {
-
             closures.each {closure ->
                 Closure<FlowState> track_closure = {
                     flowRun.state = new FlowState(SUCCESS, upstream)
