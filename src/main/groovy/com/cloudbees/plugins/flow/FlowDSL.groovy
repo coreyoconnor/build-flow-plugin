@@ -129,7 +129,7 @@ public class FlowDelegate {
         out.println()
     }
 
-    def println(String s) {
+    def synchronized println(String s) {
         println_with_indent { out.println(s) }
     }
 
